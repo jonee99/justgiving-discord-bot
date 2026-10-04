@@ -17,6 +17,11 @@ export interface ModalButtonInteraction extends ReplyInteraction {
   showModal(modal: ModalBuilder): Promise<unknown>;
 }
 
+/** Receipt buttons may carry a fresh, user-bound consent continuation. */
+export interface ClaimButtonInteraction extends ModalButtonInteraction {
+  readonly customId: string;
+}
+
 /** Only the form fields consumed by the manual claim handler. */
 export interface ClaimModalInteraction extends DeferredInteraction {
   readonly customId: string;

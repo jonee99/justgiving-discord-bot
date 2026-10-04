@@ -139,6 +139,71 @@ describe('manual claim consent', () => {
   });
 });
 
+describe('claim from the donation card', () => {
+  async function donateChoice(ctx: AppContext, hidden: boolean): Promise<string> {
+    const card = new Interaction();
+    await handleWallChoice(card, ctx, hidden);
+    // Click the actual custom ID emitted by the Discord builder, as the client would.
+    const customId = /"custom_id":"(donor:claim[^"]*)"/.exec(card.text)?.[1];
+    if (!customId) throw new Error('Donation card has no receipt button');
+    return customId;
+  }
+
+  it.each([true, false])('reuses choice %s and opens the receipt form without asking twice', async (hidden) => {
+    const { ctx, store, discord } = fixture();
+    const receipt = new Interaction();
+    receipt.customId = await donateChoice(ctx, hidden);
+    await handleClaimButton(receipt, ctx);
+    expect(receipt.events.map((e) => e.kind)).toEqual(['modal']);
+    expect(receipt.modal?.toJSON().title).toBe('Link your donation');
+    expect(store.isHiddenFromWall(USER_A)).toBe(hidden);
+    await handleClaimModal(receipt, ctx);
+    expect(store.getClaim('100')?.discordUserId).toBe(USER_A);
+    expect(discord.calls).toHaveLength(1);
+  });
+
+  it('does not overwrite a later visibility preference when continuing the card', async () => {
+    const { ctx, store } = fixture();
+    const receipt = new Interaction();
+    receipt.customId = await donateChoice(ctx, false);
+    store.setHiddenFromWall(USER_A, true);
+    await handleClaimButton(receipt, ctx);
+    expect(receipt.events.map((e) => e.kind)).toEqual(['modal']);
+    expect(store.isHiddenFromWall(USER_A)).toBe(true);
+  });
+
+  it('does not reuse a donation-card choice for another attempt', async () => {
+    const { ctx } = fixture();
+    const customId = await donateChoice(ctx, true);
+    const first = new Interaction();
+    first.customId = customId;
+    await handleClaimButton(first, ctx);
+    expect(first.events.map((e) => e.kind)).toEqual(['modal']);
+    const retry = new Interaction();
+    retry.customId = customId;
+    await handleClaimButton(retry, ctx);
+    expect(retry.events.map((e) => e.kind)).toEqual(['reply']);
+    expect(retry.text).toContain('donor:claim-show');
+  });
+
+  it.each(['expired', 'forgotten', 'other-user', 'replaced'])('asks again for a %s continuation', async (reason) => {
+    vi.useFakeTimers();
+    const { ctx, store, discord } = fixture();
+    const customId = await donateChoice(ctx, true);
+    if (reason === 'expired') vi.advanceTimersByTime(10 * 60_000);
+    if (reason === 'forgotten') await handleForgetChoice(new Interaction(), ctx, true);
+    if (reason === 'replaced') await handleClaimChoice(new Interaction(), ctx, false);
+    const receipt = new Interaction(reason === 'other-user' ? USER_B : USER_A);
+    receipt.customId = customId;
+    await handleClaimButton(receipt, ctx);
+    expect(receipt.events.map((e) => e.kind)).toEqual(['reply']);
+    expect(receipt.text).toContain('donor:claim-show');
+    expect(receipt.modal).toBeNull();
+    expect(store.getClaim('100')).toBeNull();
+    expect(discord.calls).toEqual([]);
+  });
+});
+
 describe('forget during manual work', () => {
   it('cannot recreate a personal token after forgetting during /donate metadata lookup', async () => {
     const { ctx, store, tokens } = fixture();

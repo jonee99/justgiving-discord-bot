@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
-/** Single-use, user-bound claim forms. A new choice replaces the previous form. */
+/** Single-use, user-bound claim continuations. A new choice replaces the previous one. */
 export class ClaimPrompts {
   private readonly pending = new Map<string, { nonce: string; expiresAt: number }>();
 
-  /** Issue a form only after an explicit Show/Hide choice; valid for ten minutes. */
+  /** Issue a card/form continuation after an explicit Show/Hide choice; valid for ten minutes. */
   open(userId: string): string {
     const now = Date.now();
     for (const [id, prompt] of this.pending) {
@@ -15,7 +15,7 @@ export class ClaimPrompts {
     return nonce;
   }
 
-  /** Consume only this user's latest unexpired form, never a legacy/stale modal. */
+  /** Consume only this user's latest unexpired continuation, never a legacy/stale ID. */
   consume(userId: string, nonce: string): boolean {
     const prompt = this.pending.get(userId);
     if (!prompt || prompt.nonce !== nonce) return false;

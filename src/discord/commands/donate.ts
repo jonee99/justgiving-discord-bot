@@ -24,8 +24,8 @@ export function wallChoiceButtons(): ActionRowBuilder<ButtonBuilder> {
   );
 }
 
-function claimButton(): ButtonBuilder {
-  return new ButtonBuilder().setCustomId(CLAIM_BUTTON_ID).setStyle(ButtonStyle.Secondary).setLabel("I've already donated");
+function claimButton(customId: string): ButtonBuilder {
+  return new ButtonBuilder().setCustomId(customId).setStyle(ButtonStyle.Secondary).setLabel("I've already donated");
 }
 
 /** Step 1: /donate asks the donor wall question (unless donations are closed). */
@@ -37,7 +37,7 @@ export async function handleDonate(interaction: ChatInputCommandInteraction, ctx
   if (driveEndsAt && Date.now() >= driveEndsAt.getTime()) {
     await interaction.editReply({
       embeds: [driveEndedEmbed(site)],
-      components: [new ActionRowBuilder<ButtonBuilder>().addComponents(claimButton())],
+      components: [new ActionRowBuilder<ButtonBuilder>().addComponents(claimButton(CLAIM_BUTTON_ID))],
     });
     return;
   }
@@ -88,6 +88,7 @@ async function donateCard(discordUserId: string, hidden: boolean, ctx: AppContex
 
   return {
     embeds: [donateEmbed({ charity, site, endsAt: driveEndsAt, wallUrl: `${publicBaseUrl}/`, hiddenFromWall: hidden })],
-    components: [new ActionRowBuilder<ButtonBuilder>().addComponents(donate, claimButton())],
+    components: [new ActionRowBuilder<ButtonBuilder>().addComponents(donate,
+      claimButton(`${CLAIM_BUTTON_ID}:${ctx.claimPrompts.open(discordUserId)}`))],
   };
 }

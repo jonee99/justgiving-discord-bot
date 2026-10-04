@@ -2,7 +2,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, LabelBuilder, MessageFlag
 import type { AppContext } from '../../context.js';
 import { processClaim } from '../../donations.js';
 import { failureEmbed, successEmbed, wallChoiceEmbed } from '../embeds.js';
-import type { ClaimModalInteraction, ModalButtonInteraction, ReplyInteraction } from '../interaction-ports.js';
+import type { ClaimButtonInteraction, ClaimModalInteraction, ModalButtonInteraction, ReplyInteraction } from '../interaction-ports.js';
 
 /** Public manual-claim entrypoint, including old donation cards. */
 export const CLAIM_BUTTON_ID = 'donor:claim';
@@ -27,8 +27,14 @@ export async function handleClaim(interaction: ReplyInteraction, ctx: AppContext
   });
 }
 
-/** "I've already donated" uses exactly the same consent-first journey. */
-export async function handleClaimButton(interaction: ReplyInteraction, ctx: AppContext): Promise<void> {
+/** Continue this donation card's fresh choice once; old/expired cards ask first. */
+export async function handleClaimButton(interaction: ClaimButtonInteraction, ctx: AppContext): Promise<void> {
+  const prefix = `${CLAIM_BUTTON_ID}:`;
+  if (interaction.customId.startsWith(prefix) &&
+      ctx.claimPrompts.consume(interaction.user.id, interaction.customId.slice(prefix.length))) {
+    await showClaimModal(interaction, ctx);
+    return;
+  }
   await handleClaim(interaction, ctx);
 }
 
@@ -37,6 +43,10 @@ export async function handleClaimChoice(interaction: ModalButtonInteraction, ctx
   const { store } = ctx.donations;
   store.setHiddenFromWall(interaction.user.id, hidden);
   store.audit(hidden ? 'wall_hidden' : 'wall_shown', { discordUserId: interaction.user.id, detail: 'claim' });
+  await showClaimModal(interaction, ctx);
+}
+
+async function showClaimModal(interaction: ModalButtonInteraction, ctx: AppContext): Promise<void> {
   const nonce = ctx.claimPrompts.open(interaction.user.id);
   const modal = new ModalBuilder()
     .setCustomId(`${CLAIM_MODAL_ID}:${nonce}`)

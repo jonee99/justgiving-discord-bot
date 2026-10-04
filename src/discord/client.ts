@@ -22,7 +22,7 @@ async function route(interaction: Interaction, ctx: AppContext): Promise<void> {
     if (interaction.commandName === 'donor-status') return handleDonorStatus(interaction, ctx);
     if (interaction.commandName === 'donor-wall') return handleDonorWall(interaction, ctx);
     if (interaction.commandName === 'donor-forget') return handleDonorForget(interaction);
-  } else if (interaction.isButton() && interaction.customId === CLAIM_BUTTON_ID) {
+  } else if (interaction.isButton() && (interaction.customId === CLAIM_BUTTON_ID || interaction.customId.startsWith(`${CLAIM_BUTTON_ID}:`))) {
     return handleClaimButton(interaction, ctx);
   } else if (interaction.isButton() && (interaction.customId === CLAIM_SHOW_ID || interaction.customId === CLAIM_HIDE_ID)) {
     return handleClaimChoice(interaction, ctx, interaction.customId === CLAIM_HIDE_ID);

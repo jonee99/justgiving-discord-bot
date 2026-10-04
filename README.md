@@ -17,7 +17,7 @@ Other commands:
 
 | Command | What it does |
 |---|---|
-| `/claim` | Links an eligible donation, including one made directly to the fundraising page or before the bot launched. Every attempt first asks Show/Hide for the donor wall, then opens a form for the reference from their JustGiving receipt email (it looks like `123456789/1`). There's also an **I've already donated** button under `/donate`. |
+| `/claim` | Links an eligible donation, including one made directly to the fundraising page or before the bot launched. Every attempt first asks Show/Hide for the donor wall, then opens a form for the reference from their JustGiving receipt email (it looks like `123456789/1`). The **I've already donated** button on a fresh `/donate` card goes straight to the receipt form using the Show/Hide choice just made, without asking twice. |
 | `/donor-status` | Shows linked donations; if the role is missing, asks Show/Hide before restoring it. |
 | `/donor-wall` | Shows or hides the member on the donor wall. |
 | `/donor-forget` | Deletes user-linked data after confirmation; retains used donation IDs without the Discord link to prevent reuse. The role stays, but recovery and refund tracking stop. |
@@ -38,7 +38,7 @@ There's no minimum amount beyond JustGiving's own (£2 in the UK). Once a day th
 
 ### Receipt-only claims
 
-Members who donated directly to the configured page, including before the bot launched, can use `/claim`: **Show/Hide → receipt reference → eligible one-time claim**. The bot resolves the receipt to the JustGiving donation ID; members do not need to find that ID. Every attempt asks again. The choice immediately affects all the member's linked donations, even if the form is cancelled or verification fails.
+Members who donated directly to the configured page, including before the bot launched, can use `/claim`: **Show/Hide → receipt reference → eligible one-time claim**. The bot resolves the receipt to the JustGiving donation ID; members do not need to find that ID. Every fresh `/claim` attempt asks again. The receipt button on a fresh `/donate` card continues that flow's choice once, for up to ten minutes; old, expired or reused cards ask again. The choice immediately affects all the member's linked donations, even if the form is cancelled or verification fails.
 
 A non-empty bot-link reference still belongs only to its known owner; receipts cannot override it. The legacy numeric donation-ID fallback retains its existing tagged-owner requirement. No ownership token is fabricated or attached retroactively.
 
